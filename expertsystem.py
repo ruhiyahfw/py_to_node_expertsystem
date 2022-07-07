@@ -222,8 +222,8 @@ def getNextQuestion(probabilities_sofar, symptom_questioned_per_disease):
     # print(prob_questioned_dict)
 
     disease_sorted_by_probability = {key: value for key, value in sorted(prob_questioned_dict.items(), key=lambda item: item[1][0], reverse=True)}
-    print("disease_sorted_by_probability")
-    print(disease_sorted_by_probability)
+    # print("disease_sorted_by_probability")
+    # print(disease_sorted_by_probability)
 
     disease_sorted_by_probability_and_symptom_left = sorted(disease_sorted_by_probability, key=lambda k: prob_questioned_dict[k][1], reverse=False)
     # print("%%%%%%%%%%%%")
@@ -246,7 +246,6 @@ def calculateCFProbability(symptom_questioned, qa_so_far , disease_questioned):
 
     # CALCULATE CF(H,E)
     for sq in symptom_questioned:
-
         cf_he = 0
         if qa_so_far[sq] == 1:
             cf_he = 0.9
@@ -283,7 +282,6 @@ def runInference():
     check = 0
     threshold = 0.2
     next_question = sorted_symptom[0]
-    print("next question", next_question)
     # ITERATION
     while int(check) != 1:
         # GET USER INPUT
@@ -295,8 +293,6 @@ def runInference():
         qa_so_far[next_question] = int(x)
 
         for d,s in diseases.items():
-            # print("--------------")
-            # print(d)
 
             cf_comb = 0
             symptom_questioned = []
@@ -306,17 +302,12 @@ def runInference():
                 if qa in s.keys():
                     symptom_questioned.append(qa)
 
-            
-            #print(symptom_questioned)
-
             # Calculate CF probability
             if len(symptom_questioned) > 1:
                 cf_comb = calculateCFProbability(symptom_questioned, qa_so_far , s)
 
             # Store disease probability
             probabilities_sofar[d] = cf_comb 
-
-            #print(probabilities_sofar)
 
             # Update symptom questioned per disease status
             for sq in symptom_questioned:
@@ -330,21 +321,7 @@ def runInference():
                        question_completed = False
                        break
                 is_disease_question_completed[k] = question_completed
-        # print("qa so far : ")
-        # print(qa_so_far)
-        # print("-----------")
-        # print("symptom_questioned_per_disease : ")
-        # print(symptom_questioned_per_disease)
-        # print("-----------")
-        # print("probabilities_sofar : ")
-        # print(probabilities_sofar)
-        # print("-----------")
-        # print("is_disease_question_completed : ")
-        # print(is_disease_question_completed)
-        # print("-----------")
-        # Ask user if symptom describe disease
-        print("******")
-        print(probabilities_sofar)
+
         for k,v in is_disease_question_completed.items():
             if v and probabilities_sofar[k] > threshold and not(is_checked[k]):
                 print("is disease",k,"?" )
@@ -353,23 +330,14 @@ def runInference():
                     break
                 is_checked[k] = True
 
-        # print("is checked")
-        # print(is_checked)
-
         # Get Next Question
         next_question = getNextQuestion(probabilities_sofar, symptom_questioned_per_disease)
-        # print("next ques")
-        # print(next_question)
         i = i + 1
 
         if len(next_question) == 0 or int(check) == 1:
             break 
         
         next_question = next_question[0]
-
-
-        # print("Current I ->",i)
-        # print(probabilities_sofar)
         
     print(probabilities_sofar)
 

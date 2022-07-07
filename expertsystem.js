@@ -235,7 +235,8 @@ const calculateCFProbability = (symptom_questioned, qa_so_far , disease_question
     let cf_comb = 0
     let cf_list = []
     // calculate CF(H,E)
-    for (sq in symptom_questioned){
+    for (let i=0; i<symptom_questioned.length; i++){
+        const sq = symptom_questioned[i]
         let cf_he = 0
         switch (qa_so_far[sq]){
             case 1: 
@@ -253,7 +254,7 @@ const calculateCFProbability = (symptom_questioned, qa_so_far , disease_question
             case 5:
                 cf_he = 0.2;
                 break;
-        } 
+        }
         cf_he *= disease_questioned[sq]
         cf_list.push(cf_he)
     }
@@ -273,18 +274,16 @@ const run_es = (qa_so_far, next_question, symptom_questioned_per_disease, probab
     qa_so_far[next_question] = x
     
     for (let d in diseases){
-        s = Object.keys(diseases[d])
+        s = diseases[d]
         cf_comb = 0
         symptom_questioned = []
 
         // get symptomp that has been questioned
         for (qa in qa_so_far){
-            if (s.includes(qa)){
+            if (s[qa]){
                 symptom_questioned.push(qa)
             }
         }
-
-        //console.log(symptom_questioned)
 
         // calculate CF probability
         if (symptom_questioned.length > 1){
@@ -293,8 +292,6 @@ const run_es = (qa_so_far, next_question, symptom_questioned_per_disease, probab
 
         //store disease probability
         probabilities_sofar[d] = cf_comb
-
-        //console.log(probabilities_sofar)
 
         // update symptom questioned per disease status
         for (let i=0; i<symptom_questioned.length; i++){
@@ -326,8 +323,6 @@ const run_es = (qa_so_far, next_question, symptom_questioned_per_disease, probab
 }
 
 const checkSymptomQuestioned= (is_disease_question_completed, probabilities_sofar, is_checked)=> {
-    console.log("******")
-    console.log(probabilities_sofar)
     let ask_user = false
     for (let k in is_disease_question_completed){
         if (is_disease_question_completed[k] && probabilities_sofar[k] > treshold && (!(is_checked[k]))){
@@ -372,13 +367,8 @@ const getQuestionList= (disease_sorted_by_probability_and_symptom_left, symptom_
 }
 
 const getNextQuestion = (probabilities_sofar, symptom_questioned_per_disease) => {
-    //console.log(probabilities_sofar)
-    // console.log("lalalalllililili")
-    // console.log(symptom_questioned_per_disease)
     let prob_questioned_dict = {}
     for (d in probabilities_sofar){
-        // console.log("\n+++++")
-        //console.log(d)
         prob_questioned_dict[d] = []
         prob_questioned_dict[d].push(probabilities_sofar[d])
         let q_count = 0
@@ -393,13 +383,8 @@ const getNextQuestion = (probabilities_sofar, symptom_questioned_per_disease) =>
         prob_questioned_dict[d].push(q_count)
     }
 
-    // console.log("@@@@@@@@@@@")
-    // console.log(prob_questioned_dict)
-
     // get disease sort by probability
     let disease_sorted_by_probability_and_symptom_left = getDiseaseSortByProb(prob_questioned_dict);
-    // console.log("%%%%%%%%%%%%")
-    // console.log(disease_sorted_by_probability_and_symptom_left)
 
     // get question list
     let question_list = getQuestionList(disease_sorted_by_probability_and_symptom_left, symptom_questioned_per_disease)
@@ -433,14 +418,13 @@ const runInference = () => {
         let final_quest = checkSymptomQuestioned(is_disease_question_completed, probabilities_sofar, is_checked)
         let is_ask_user = final_quest.ask_user
         if (is_ask_user){
-            console.log("eh final quest haha")
+            console.log("final question")
             break
         }
         is_checked = final_quest.is_checked
 
         // Get next question
         next_question = getNextQuestion(probabilities_sofar, symptom_questioned_per_disease)
-        //console.log(next_question)
 
         // heeeeee
         if (next_question.length === 0 || check === 1){
