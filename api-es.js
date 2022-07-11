@@ -195,12 +195,39 @@ const getOrderedQuestion = () => {
     }
 
     return(result)
-    
 }
 
 const sorted_symptom = getOrderedQuestion();
 
-const treshold = 0.2
+// UI/UX based constants
+const num_questions_perpage = 1;
+
+
+// Bagian API
+const getFirstQuestions = () => {
+    const q_no = sorted_symptom[0]
+    return({
+        es_finished: false,
+        question_no: q_no,
+        question: question[q_no],
+        qa_so_far: {}
+    })
+}
+
+//
+const input = [
+    {
+        question_no: 23,
+        answer: 1,
+    }
+]
+
+const updateQASoFar = (input, qa_so_far) => {
+    for (let i=0; i<num_questions_perpage; i++){
+        qa_so_far[input[i].question_no] = input[i].answer
+    }
+    return qa_so_far
+}
 
 const init_vars = () => {
     let is_checked = {}
@@ -216,58 +243,17 @@ const init_vars = () => {
 
     return({
         is_checked: is_checked,
-        symptom_questioned_per_disease: symptom_questioned_per_disease,
-        check : 0,
-        qa_so_far: {},
-        next_question : sorted_symptom[0],
-        probabilities_sofar: {},
-        is_disease_question_completed:{}
+        symptom_questioned_per_disease: symptom_questioned_per_disease
     })
 }
 
-const getUserInput= (question_no) => { // icak2
-    console.log(question[question_no])
-    console.log("Jawaban = 1\n")
-    return 1
-}
+const init_var = init_vars()
 
-const calculateCFProbability = (symptom_questioned, qa_so_far , disease_questioned)=> {
-    let cf_comb = 0
-    let cf_list = []
-    // calculate CF(H,E)
-    for (let i=0; i<symptom_questioned.length; i++){
-        const sq = symptom_questioned[i]
-        let cf_he = 0
-        switch (qa_so_far[sq]){
-            case 1: 
-                cf_he = 0.9;
-                break;
-            case 2:
-                cf_he = 0;
-                break;
-            case 3:
-                cf_he = 0.4;
-                break;
-            case 4:
-                cf_he = 0.6;
-                break;
-            case 5:
-                cf_he = 0.2;
-                break;
-        }
-        cf_he *= disease_questioned[sq]
-        cf_list.push(cf_he)
-    }
+const run_es = (qa_so_far) => {    
+    const probabilities_sofar = {};
+    const symptom_questioned_per_disease = init_var.symptom_questioned_per_disease;
+    const is_disease_question_completed = {};
 
-    // calculate probability
-    cf_comb = cf_list[0]
-    for (j=0; j< cf_list.length - 1; j++){
-        cf_comb += (cf_list[j+1]*(1-cf_comb))
-    }
-    return cf_comb
-}
-
-const run_es = (qa_so_far, symptom_questioned_per_disease, probabilities_sofar, is_disease_question_completed) => {    
     for (let d in diseases){
         s = diseases[d]
         cf_comb = 0
@@ -310,31 +296,27 @@ const run_es = (qa_so_far, symptom_questioned_per_disease, probabilities_sofar, 
 
     // return computation result
     return({
-        qa_so_far: qa_so_far,
         symptom_questioned_per_disease: symptom_questioned_per_disease,
         probabilities_sofar : probabilities_sofar,
         is_disease_question_completed: is_disease_question_completed
     })
 }
 
-const checkSymptomQuestioned= (is_disease_question_completed, probabilities_sofar, is_checked)=> {
-    let ask_user = false
-    let disease
+const checkSymptomQuestioned= (is_disease_question_completed, probabilities_sofar)=> {
+    let is_checked = init_var.is_checked
+
     for (let k in is_disease_question_completed){
         if (is_disease_question_completed[k] && probabilities_sofar[k] > treshold && (!(is_checked[k]))){
-            check = 1
-            if (check === 1){
-                ask_user = true
-                disease = k
-                break
-            }
             is_checked[k] = true
+            return({
+                ask_user: true,
+                disease_guessed: k,
+                is_checked: is_checked
+            })
         }
     }
     return({
-        ask_user: ask_user,
-        disease_guessed: disease,
-        is_checked: is_checked
+        ask_user: false,
     })
 }
 
@@ -391,58 +373,34 @@ const getNextQuestion = (probabilities_sofar, symptom_questioned_per_disease) =>
 
 }
 
-const runInference = () => {
-    // init variables
-    const init_var = init_vars()
-    let is_checked = init_var.is_checked
-    let symptom_questioned_per_disease = init_var.symptom_questioned_per_disease
-    let check = init_var.check
-    let qa_so_far = init_var.qa_so_far
-    let next_question = init_var.next_question
-    let probabilities_sofar = init_var.probabilities_sofar
-    let is_disease_question_completed = init_var.is_disease_question_completed
+const getESResult = (input, qa_so_far) => {
+    // store user input
+    qa_so_far = updateQASoFar(input, qa_so_far)
 
-    let i=1
-    // loop
-    while (check !== 1){
-        console.log(`question ${i}`)
-        // user input 
-        let x = getUserInput(next_question)
+    // run es
+    const esResult = run_es(qa_so_far);
 
-        // store user input
-        qa_so_far[next_question] = x
-
-        let after_comp = run_es(qa_so_far, symptom_questioned_per_disease, probabilities_sofar, is_disease_question_completed)
-        qa_so_far = after_comp.qa_so_far;
-        symptom_questioned_per_disease = after_comp.symptom_questioned_per_disease;
-        probabilities_sofar = after_comp.probabilities_sofar;
-        is_disease_question_completed = after_comp.is_disease_question_completed;
-
-        // Check if all symptom in disease has been questioned
-        let final_quest = checkSymptomQuestioned(is_disease_question_completed, probabilities_sofar, is_checked)
-        let is_ask_user = final_quest.ask_user
-        if (is_ask_user){
-            console.log("final question")
-            break
-        }
-        is_checked = final_quest.is_checked
-
-        // Get next question
-        next_question = getNextQuestion(probabilities_sofar, symptom_questioned_per_disease)
-
-        // heeeeee
-        if (next_question.length === 0 || check === 1){
-            break
-        }
-        next_question = next_question[0]
-
-        i+=1;
-
-        if (i===10){
-            break
-        }
+    // Check if all symptom in disease has been questioned
+    const final_quest = checkSymptomQuestioned(esResult.is_disease_question_completed, esResult.probabilities_sofar)
+    if (final_quest.ask_user){
+        return({
+            es_finished: true,
+            probability: esResult.probabilities_sofar
+        })
     }
-    
+
+    // Get next question
+    const next_question = getNextQuestion(esResult.probabilities_sofar, esResult.symptom_questioned_per_disease)
+    const q_no = next_question[0]
+    return({
+        es_finished: false,
+        question_no: q_no,
+        question: question[q_no],
+        qa_so_far: qa_so_far
+    })
+
 }
 
-runInference()
+console.log(getFirstQuestions())
+
+console.log(getESResult(input, {}))
