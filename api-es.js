@@ -201,6 +201,7 @@ const sorted_symptom = getOrderedQuestion();
 
 // UI/UX based constants
 const num_questions_perpage = 1;
+const treshold = 0.2
 
 
 // Bagian API
@@ -248,6 +249,42 @@ const init_vars = () => {
 }
 
 const init_var = init_vars()
+
+const calculateCFProbability = (symptom_questioned, qa_so_far , disease_questioned)=> {
+    let cf_comb = 0
+    let cf_list = []
+    // calculate CF(H,E)
+    for (let i=0; i<symptom_questioned.length; i++){
+        const sq = symptom_questioned[i]
+        let cf_he = 0
+        switch (qa_so_far[sq]){
+            case 1: 
+                cf_he = 0.9;
+                break;
+            case 2:
+                cf_he = 0;
+                break;
+            case 3:
+                cf_he = 0.4;
+                break;
+            case 4:
+                cf_he = 0.6;
+                break;
+            case 5:
+                cf_he = 0.2;
+                break;
+        }
+        cf_he *= disease_questioned[sq]
+        cf_list.push(cf_he)
+    }
+
+    // calculate probability
+    cf_comb = cf_list[0]
+    for (j=0; j< cf_list.length - 1; j++){
+        cf_comb += (cf_list[j+1]*(1-cf_comb))
+    }
+    return cf_comb
+}
 
 const run_es = (qa_so_far) => {    
     const probabilities_sofar = {};
@@ -401,6 +438,27 @@ const getESResult = (input, qa_so_far) => {
 
 }
 
+
+// CONTOH KASUS
+
 console.log(getFirstQuestions())
 
 console.log(getESResult(input, {}))
+
+const input2 = [
+    {
+        question_no: 17,
+        answer: 1,
+    }
+]
+
+console.log(getESResult(input2, { '23': 1 }))
+
+const input3 = [
+    {
+        question_no: 21,
+        answer: 1,
+    }
+]
+
+console.log(getESResult(input3, { '17': 1, '23': 1 }))
